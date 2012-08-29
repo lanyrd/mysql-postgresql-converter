@@ -74,8 +74,8 @@ def parse(input_filename, output_filename):
         # Inside-create-statement handling
         else:
             # Is it a column?
-            if line.startswith('"')
-                useless, name, definition = line.strip(",",2).split('"')
+            if line.startswith('"'):
+                useless, name, definition = line.strip(",").split('"',2)
                 try:
                     type, extra = definition.strip().split(" ", 1)
                 except ValueError:
