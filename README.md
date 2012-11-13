@@ -17,3 +17,8 @@ Then, run the converter script using `python dbconverter.py databasename.mysql d
 progress to the terminal.
 
 Finally, load your new dump into a fresh PostgreSQL database using `psql -f databasename.psql`.
+
+More information
+----------------
+
+You can learn more about the move which this powered at http://lanyrd.com/blog/2012/lanyrds-big-move/ and some technical details of it at http://www.aeracode.org/2012/11/13/one-change-not-enough/.
