@@ -89,6 +89,8 @@ def parse(input_filename, output_filename):
                     final_type = "boolean"
                 elif type.startswith("int("):
                     type = "integer"
+                elif type.startswith("bigint("):
+                    type = "bigint"
                 elif type == "longtext":
                     type = "text"
                 elif type.startswith("varchar("):
