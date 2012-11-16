@@ -65,7 +65,7 @@ def parse(input_filename, output_filename):
                 creation_lines = []
             # Inserting data into a table?
             elif line.startswith("INSERT INTO"):
-                output.write(line.encode("utf8") + "\n")
+                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
                 num_inserts += 1
             # ???
             else:
@@ -93,6 +93,10 @@ def parse(input_filename, output_filename):
                     type = "bigint"
                 elif type == "longtext":
                     type = "text"
+                elif type == "mediumtext":
+                    type = "text"
+                elif type == "tinytext":
+                    type = "text"
                 elif type.startswith("varchar("):
                     size = int(type.split("(")[1].rstrip(")"))
                     type = "varchar(%s)" % (size * 2)
@@ -108,7 +112,7 @@ def parse(input_filename, output_filename):
                 if name == "id":
                     sequence_lines.append("CREATE SEQUENCE %s_id_seq" % (current_table))
                     sequence_lines.append("SELECT setval('%s_id_seq', max(id)) FROM %s" % (current_table, current_table))
-                    sequence_lines.append("ALTER TABLE %s ALTER COLUMN id SET DEFAULT nextval('%s_id_seq')" % (current_table, current_table))
+                    sequence_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"id\" SET DEFAULT nextval('%s_id_seq')" % (current_table, current_table))
                 # Record it
                 creation_lines.append('"%s" %s %s' % (name, type, extra))
                 tables[current_table]['columns'].append((name, type, extra))
