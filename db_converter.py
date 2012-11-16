@@ -93,6 +93,10 @@ def parse(input_filename, output_filename):
                     type = "bigint"
                 elif type == "longtext":
                     type = "text"
+                elif type == "mediumtext":
+                    type = "text"
+                elif type == "tinytext":
+                    type = "text"
                 elif type.startswith("varchar("):
                     size = int(type.split("(")[1].rstrip(")"))
                     type = "varchar(%s)" % (size * 2)
