@@ -98,7 +98,7 @@ def parse(input_filename, output_filename):
                 except ValueError:
                     type = definition.strip()
                     extra = ""
-                extra = re.sub("CHARACTER SET [\w\d]+\s+", "", extra.replace("unsigned", ""))
+                extra = re.sub("CHARACTER SET [\w\d]+\s*", "", extra.replace("unsigned", ""))
                 # See if it needs type conversion
                 final_type = None
                 if type == "tinyint(1)":
