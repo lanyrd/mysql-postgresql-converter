@@ -10,6 +10,7 @@ mysqldump --compatible=postgresql --default-character-set=utf8 -r databasename.m
 
 import re
 import sys
+import os
 import time
 import subprocess
 
@@ -18,7 +19,10 @@ def parse(input_filename, output_filename):
     "Feed it a file, and it'll output a fixed one"
 
     # State storage
-    num_lines = int(subprocess.check_output(["wc", "-l", input_filename]).strip().split()[0])
+    if input_filename == "-":
+        num_lines = -1
+    else:
+        num_lines = int(subprocess.check_output(["wc", "-l", input_filename]).strip().split()[0])
     tables = {}
     current_table = None
     creation_lines = []
@@ -28,19 +32,32 @@ def parse(input_filename, output_filename):
     num_inserts = 0
     started = time.time()
 
-    # Open output file and write header
-    output = open(output_filename, "w")
+    # Open output file and write header. Logging file handle will be stdout
+    # unless we're writing output to stdout, in which case NO PROGRESS FOR YOU.
+    if output_filename == "-":
+        output = sys.stdout
+        logging = open(os.devnull, "w")
+    else:
+        output = open(output_filename, "w")
+        logging = sys.stdout
+
+    if input_filename == "-":
+        input_fh = sys.stdin
+    else:
+        input_fh = open(input_filename)
+
+
     output.write("-- Converted by db_converter\n")
     output.write("START TRANSACTION;\n")
     output.write("SET standard_conforming_strings=off;\n")
     output.write("SET escape_string_warning=off;\n")
     output.write("SET CONSTRAINTS ALL DEFERRED;\n\n")
 
-    for i, line in enumerate(open(input_filename)):
+    for i, line in enumerate(input_fh):
         time_taken = time.time() - started
         percentage_done = (i+1) / float(num_lines)
         secs_left = (time_taken / percentage_done) - time_taken
-        sys.stdout.write("\rLine %i (of %s: %.2f%%) [%s tables] [%s inserts] [ETA: %i min %i sec]" % (
+        logging.write("\rLine %i (of %s: %.2f%%) [%s tables] [%s inserts] [ETA: %i min %i sec]" % (
             i + 1,
             num_lines,
             ((i+1)/float(num_lines))*100,
@@ -49,7 +66,7 @@ def parse(input_filename, output_filename):
             secs_left // 60,
             secs_left % 60,
         ))
-        sys.stdout.flush()
+        logging.flush()
         line = line.decode("utf8").strip().replace(r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
         # Ignore comment lines
         if line.startswith("--") or line.startswith("/*") or line.startswith("LOCK TABLES") or line.startswith("DROP TABLE") or line.startswith("UNLOCK TABLES") or not line:
@@ -81,7 +98,7 @@ def parse(input_filename, output_filename):
                 except ValueError:
                     type = definition.strip()
                     extra = ""
-                extra = re.sub("CHARACTER SET [\w\d]+\s+", "", extra.replace("unsigned", ""))
+                extra = re.sub("CHARACTER SET [\w\d]+\s*", "", extra.replace("unsigned", ""))
                 # See if it needs type conversion
                 final_type = None
                 if type == "tinyint(1)":
