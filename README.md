@@ -11,11 +11,11 @@ for column typing purposes.
 How to use
 ----------
 
-Firstly, dump your database using: 
+First, dump your Mysql database in Postgres-compatible format
 
 `mysqldump --compatible=postgresql --default-character-set=utf8 -r databasename.mysql -u root databasename`
 
-Then, run the converter script using: 
+Then, convert it using the dbconverter.py script
 
 `python dbconverter.py databasename.mysql databasename.psql`
 
