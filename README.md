@@ -11,7 +11,7 @@ for column typing purposes.
 How to use
 ----------
 
-First, dump your MySQL database in Postgres-compatible format
+First, dump your MySQL database in PostgreSQL-compatible format
 
     mysqldump --compatible=postgresql --default-character-set=utf8 \
     -r databasename.mysql -u root databasename
