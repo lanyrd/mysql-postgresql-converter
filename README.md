@@ -11,12 +11,19 @@ for column typing purposes.
 How to use
 ----------
 
-Firstly, dump your database using `mysqldump --compatible=postgresql --default-character-set=utf8 -r databasename.mysql -u root databasename`.
+Firstly, dump your database using: 
 
-Then, run the converter script using `python dbconverter.py databasename.mysql databasename.psql` - it'll print
-progress to the terminal.
+`mysqldump --compatible=postgresql --default-character-set=utf8 -r databasename.mysql -u root databasename`
 
-Finally, load your new dump into a fresh PostgreSQL database using `psql -f databasename.psql`.
+Then, run the converter script using: 
+
+`python dbconverter.py databasename.mysql databasename.psql`
+
+It'll print progress to the terminal.
+
+Finally, load your new dump into a fresh PostgreSQL database using: 
+
+`psql -f databasename.psql`
 
 More information
 ----------------
