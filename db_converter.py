@@ -14,6 +14,13 @@ import os
 import time
 import subprocess
 
+# Set this to the data type you want your MySQL 'blob' to be converted to. For example:
+#  * text
+#  * bytea
+#
+# Set this to '' (empty string) if you want to select it everytimes
+# See: http://www.postgresql.org/docs/9.0/static/datatype-binary.html
+BLOB_TO = 'text'
 
 def parse(input_filename, output_filename):
     "Feed it a file, and it'll output a fixed one"
@@ -123,6 +130,8 @@ def parse(input_filename, output_filename):
                     type = "timestamp with time zone"
                 elif type == "double":
                     type = "double precision"
+                elif type == "blob":
+                    type = "%s" % convert_blob(current_table, name)
                 if final_type:
                     cast_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"%s\" DROP DEFAULT, ALTER COLUMN \"%s\" TYPE %s USING CAST(\"%s\" as %s)" % (current_table, name, name, final_type, name, final_type))
                 # ID fields need sequences
@@ -179,6 +188,11 @@ def parse(input_filename, output_filename):
     output.write("COMMIT;\n")
     print ""
 
+def convert_blob(table, name):
+    if BLOB_TO == '':
+        print("\n * %s.%s was Blob, what datatype should it be now?" % (table, name))
+        return raw_input()
+    return BLOB_TO
 
 if __name__ == "__main__":
     parse(sys.argv[1], sys.argv[2])
