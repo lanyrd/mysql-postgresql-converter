@@ -26,6 +26,20 @@ Finally, load your new dump into a fresh PostgreSQL database using:
 
 `psql -f databasename.psql`
 
+How to adjust
+-------------
+There are some constants in the script which try to assist you on incompatibilities:
+
+    BLOB_TO = 'text'
+
+Postgres does not know the datatype BLOB. This constant defines, which datatype will be used instead.
+You can set this value to e.g. 'text' or 'bytea', if you want to make this decision globally. If you set
+BLOB_TO to the empty string '', you will be prompted for every column of datatype BLOB to enter the custom type.
+
+    DATE_DEFAULT = "1900-01-01"
+
+Default date that is used to replace MySQL's "0000-00-00" date, which is not allowed in Postgres.
+
 More information
 ----------------
 
