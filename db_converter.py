@@ -22,6 +22,13 @@ import subprocess
 # See: http://www.postgresql.org/docs/9.0/static/datatype-binary.html
 BLOB_TO = 'text'
 
+# Set this to the default value which should be assigned to MySQL's 0000-00-00 values
+# (which are not supported by Postgres)
+# For example:
+#   * NULL
+#   * 1990-01-01
+DATE_DEFAULT = "1900-01-01"
+
 def parse(input_filename, output_filename):
     "Feed it a file, and it'll output a fixed one"
 
@@ -89,7 +96,7 @@ def parse(input_filename, output_filename):
                 creation_lines = []
             # Inserting data into a table?
             elif line.startswith("INSERT INTO"):
-                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
+                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL").replace("'0000-00-00'", "NULL") + "\n")
                 num_inserts += 1
             # ???
             else:
@@ -111,8 +118,8 @@ def parse(input_filename, output_filename):
                 if type == "tinyint(1)":
                     type = "int4"
                     final_type = "boolean"
-                elif type.startswith("int("):
-                    type = "integer"
+                elif type.startswith("int("): 
+                    type = "integer" 
                 elif type.startswith("bigint("):
                     type = "bigint"
                 elif type == "longtext":
@@ -132,6 +139,8 @@ def parse(input_filename, output_filename):
                     type = "double precision"
                 elif type == "blob":
                     type = "%s" % convert_blob(current_table, name)
+                elif type == "date":
+                    type, extra = convert_date(type, extra)
                 if final_type:
                     cast_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"%s\" DROP DEFAULT, ALTER COLUMN \"%s\" TYPE %s USING CAST(\"%s\" as %s)" % (current_table, name, name, final_type, name, final_type))
                 # ID fields need sequences
@@ -193,6 +202,27 @@ def convert_blob(table, name):
         print("\n * %s.%s was Blob, what datatype should it be now?" % (table, name))
         return raw_input()
     return BLOB_TO
+
+def convert_date(type, extra):
+    not_null = 'NOT NULL' in extra
+    
+    # A default date is given and the schema says, column should be not null,
+    # so we replace out-of-range values with default value or 01-01
+    if DATE_DEFAULT != 'NULL' and not_null:
+        # replace 0000-00-00 by DATE_DEFAULT
+        extra = re.sub('DEFAULT \'0000-00-00\'', 'DEFAULT \'%s\'' % DATE_DEFAULT, extra)
+        
+        # replace YYYY-00-00 by YYYY-01-01
+        extra = re.sub(r"(DEFAULT '\d\d\d\d)-00-00'", r"\1-01-01'", extra)
+
+    # The default date that is given is NULL, the schema says NOT NULL
+    # and the default value of the schema is invalid. So we resolve this
+    # conflict by making the column nullable
+    if DATE_DEFAULT == 'NULL' and not_null and "DEFAULT '0000-00-00'" in extra:
+        extra = re.sub('NOT NULL', '', extra)
+        extra = re.sub('DEFAULT \'0000-00-00\'', '', extra)
+
+    return type, extra
 
 if __name__ == "__main__":
     parse(sys.argv[1], sys.argv[2])
