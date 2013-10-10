@@ -126,7 +126,7 @@ def parse(input_filename, output_filename):
                 if final_type:
                     cast_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"%s\" DROP DEFAULT, ALTER COLUMN \"%s\" TYPE %s USING CAST(\"%s\" as %s)" % (current_table, name, name, final_type, name, final_type))
                 # ID fields need sequences
-                if name == "id":
+                if name == "id" and type.startswith("int"):
                     sequence_lines.append("CREATE SEQUENCE %s_id_seq" % (current_table))
                     sequence_lines.append("SELECT setval('%s_id_seq', max(id)) FROM %s" % (current_table, current_table))
                     sequence_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"id\" SET DEFAULT nextval('%s_id_seq')" % (current_table, current_table))
