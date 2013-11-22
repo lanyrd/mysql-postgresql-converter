@@ -99,6 +99,7 @@ def parse(input_filename, output_filename):
                     type = definition.strip()
                     extra = ""
                 extra = re.sub("CHARACTER SET [\w\d]+\s*", "", extra.replace("unsigned", ""))
+                extra = extra.replace("COLLATE utf8_unicode_ci", "")
                 # See if it needs type conversion
                 final_type = None
                 if type == "tinyint(1)":
