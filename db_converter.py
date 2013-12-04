@@ -112,6 +112,8 @@ def parse(input_filename, output_filename):
                     type = "text"
                 elif type == "mediumtext":
                     type = "text"
+                elif type == "blob":
+                    type = "bytea"
                 elif type == "tinytext":
                     type = "text"
                 elif type.startswith("varchar("):
