@@ -27,6 +27,7 @@ def parse(input_filename, output_filename):
     current_table = None
     creation_lines = []
     foreign_key_lines = []
+    index_lines = []
     sequence_lines = []
     cast_lines = []
     num_inserts = 0
@@ -77,12 +78,14 @@ def parse(input_filename, output_filename):
             # Start of a table creation statement?
             if line.startswith("CREATE TABLE"):
                 current_table = line.split('"')[1]
+                output.write("\n\n-- %s \n" % current_table)
+                output.write("DROP TABLE IF EXISTS %s;\n" % current_table)
                 output.write("CREATE TABLE \"%s\" (\n" % current_table)
                 tables[current_table] = {"columns": []}
                 creation_lines = []
             # Inserting data into a table?
             elif line.startswith("INSERT INTO"):
-                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
+                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "'1970-12-31 00:00:00'") + "\n")
                 num_inserts += 1
             # ???
             else:
@@ -126,10 +129,13 @@ def parse(input_filename, output_filename):
                 if final_type:
                     cast_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"%s\" DROP DEFAULT, ALTER COLUMN \"%s\" TYPE %s USING CAST(\"%s\" as %s)" % (current_table, name, name, final_type, name, final_type))
                 # ID fields need sequences
-                if name == "id":
-                    sequence_lines.append("CREATE SEQUENCE %s_id_seq" % (current_table))
-                    sequence_lines.append("SELECT setval('%s_id_seq', max(id)) FROM %s" % (current_table, current_table))
-                    sequence_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"id\" SET DEFAULT nextval('%s_id_seq')" % (current_table, current_table))
+                if name == "id" or (name.endswith("_id") and len(creation_lines) == 0):
+                    sequence_lines.append("DROP SEQUENCE IF EXISTS %s_%s_seq" % (current_table, name))
+                    sequence_lines.append("CREATE SEQUENCE %s_%s_seq" % (current_table, name))
+                    sequence_lines.append("SELECT setval('%s_%s_seq', max(%s)) FROM %s" % (current_table, name, name, current_table))
+                    sequence_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"%s\" SET DEFAULT nextval('%s_%s_seq')" % (current_table, name, current_table, name))
+                # Last minute tweaks
+                extra = extra.replace('0000-00-00 00:00:00', '1970-12-31 00:00:00')
                 # Record it
                 creation_lines.append('"%s" %s %s' % (name, type, extra))
                 tables[current_table]['columns'].append((name, type, extra))
@@ -142,7 +148,8 @@ def parse(input_filename, output_filename):
             elif line.startswith("UNIQUE KEY"):
                 creation_lines.append("UNIQUE (%s)" % line.split("(")[1].split(")")[0])
             elif line.startswith("KEY"):
-                pass
+              ignored, name, index_on = line.strip(",").split('"',2)
+              index_lines.append("CREATE INDEX %s_idx_%s ON %s %s" % (current_table, name, current_table, index_on.strip()))
             # Is it the end of the table?
             elif line == ");":
                 for i, line in enumerate(creation_lines):
@@ -167,6 +174,11 @@ def parse(input_filename, output_filename):
     # Write FK constraints out
     output.write("\n-- Foreign keys --\n")
     for line in foreign_key_lines:
+        output.write("%s;\n" % line)
+
+    # Write indices out
+    output.write("\n-- Indices --\n")
+    for line in index_lines:
         output.write("%s;\n" % line)
 
     # Write sequences out
