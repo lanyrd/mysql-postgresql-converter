@@ -92,13 +92,15 @@ def parse(input_filename, output_filename):
         else:
             # Is it a column?
             if line.startswith('"'):
-                useless, name, definition = line.strip(",").split('"',2)
+                useless, name, definition = line.strip(",").split('"', 2)
                 try:
                     type, extra = definition.strip().split(" ", 1)
                 except ValueError:
                     type = definition.strip()
                     extra = ""
                 extra = re.sub("CHARACTER SET [\w\d]+\s*", "", extra.replace("unsigned", ""))
+                # utf8_bin collation causes an error and usually is a no-op for postgres
+                extra = extra.replace("COLLATE utf8_bin", "")
                 # See if it needs type conversion
                 final_type = None
                 if type == "tinyint(1)":
