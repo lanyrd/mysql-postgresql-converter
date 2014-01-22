@@ -14,7 +14,7 @@ How to use
 First, dump your MySQL database in PostgreSQL-compatible format
 
     mysqldump --compatible=postgresql --default-character-set=utf8 \
-    -r databasename.mysql -u root databasename
+    --skip-triggers -r databasename.mysql -u root databasename
 
 Then, convert it using the dbconverter.py script
 
@@ -22,7 +22,7 @@ Then, convert it using the dbconverter.py script
 
 It'll print progress to the terminal.
 
-Finally, load your new dump into a fresh PostgreSQL database using: 
+Finally, load your new dump into a fresh PostgreSQL database using:
 
 `psql -f databasename.psql`
 
@@ -30,3 +30,7 @@ More information
 ----------------
 
 You can learn more about the move which this powered at http://lanyrd.com/blog/2012/lanyrds-big-move/ and some technical details of it at http://www.aeracode.org/2012/11/13/one-change-not-enough/.
+
+The script does not cope with triggers so we include --skip-triggers
+on the mysqldump command. You will need to manually convert any triggers you
+have.
