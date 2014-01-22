@@ -27,6 +27,7 @@ def parse(input_filename, output_filename):
     current_table = None
     creation_lines = []
     foreign_key_lines = []
+    key_lines = []
     sequence_lines = []
     cast_lines = []
     num_inserts = 0
@@ -45,7 +46,6 @@ def parse(input_filename, output_filename):
         input_fh = sys.stdin
     else:
         input_fh = open(input_filename)
-
 
     output.write("-- Converted by db_converter\n")
     output.write("START TRANSACTION;\n")
@@ -139,12 +139,12 @@ def parse(input_filename, output_filename):
             elif line.startswith("PRIMARY KEY"):
                 creation_lines.append(line.rstrip(","))
             elif line.startswith("CONSTRAINT"):
+                # We don't add indexes here - they're added for KEY lines
                 foreign_key_lines.append("ALTER TABLE \"%s\" ADD CONSTRAINT %s DEFERRABLE INITIALLY DEFERRED" % (current_table, line.split("CONSTRAINT")[1].strip().rstrip(",")))
-                foreign_key_lines.append("CREATE INDEX ON \"%s\" %s" % (current_table, line.split("FOREIGN KEY")[1].split("REFERENCES")[0].strip().rstrip(",")))
             elif line.startswith("UNIQUE KEY"):
                 creation_lines.append("UNIQUE (%s)" % line.split("(")[1].split(")")[0])
             elif line.startswith("KEY"):
-                pass
+                key_lines.append("CREATE INDEX on \"%s\" (%s)" % (current_table, line.split("(")[1].split(")")[0]))
             # Is it the end of the table?
             elif line == ");":
                 for i, line in enumerate(creation_lines):
@@ -154,7 +154,6 @@ def parse(input_filename, output_filename):
             # ???
             else:
                 print "\n ! Unknown line inside table creation: %s" % line
-
 
     # Finish file
     output.write("\n-- Post-data save --\n")
@@ -169,6 +168,10 @@ def parse(input_filename, output_filename):
     # Write FK constraints out
     output.write("\n-- Foreign keys --\n")
     for line in foreign_key_lines:
+        output.write("%s;\n" % line)
+
+    output.write("\n-- indexes --\n")
+    for line in key_lines:
         output.write("%s;\n" % line)
 
     # Write sequences out
