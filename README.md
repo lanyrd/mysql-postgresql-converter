@@ -18,7 +18,7 @@ First, dump your MySQL database in PostgreSQL-compatible format
 
 Then, convert it using the dbconverter.py script
 
-`python dbconverter.py databasename.mysql databasename.psql`
+`python db_converter.py databasename.mysql databasename.psql`
 
 It'll print progress to the terminal.
 
