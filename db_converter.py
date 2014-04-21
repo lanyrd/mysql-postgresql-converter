@@ -48,6 +48,7 @@ def parse(input_filename, output_filename):
     else:
         input_fh = open(input_filename)
 
+
     output.write("-- Converted by db_converter\n")
     output.write("START TRANSACTION;\n")
     output.write("SET standard_conforming_strings=off;\n")
@@ -70,10 +71,8 @@ def parse(input_filename, output_filename):
         logging.flush()
         line = line.decode("utf8").strip().replace(r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
         # Ignore comment lines
-        if line.startswith("--") or line.startswith("/*") or line.startswith("LOCK TABLES") or line.startswith("UNLOCK TABLES") or not line:
+        if line.startswith("--") or line.startswith("/*") or line.startswith("LOCK TABLES") or line.startswith("DROP TABLE") or line.startswith("UNLOCK TABLES") or not line:
             continue
-        if line.startswith("DROP TABLE"):
-            line = line.decode("utf8").strip().replace("DROP TABLE IF EXISTS", "DROP IF EXISTS")
 
         # Outside of anything handling
         if current_table is None:
@@ -87,7 +86,7 @@ def parse(input_filename, output_filename):
                 output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
                 num_inserts += 1
             # ???
-            elif line.startswith("DROP IF EXISTS"):
+            elif line.startswith("DROP TABLE"):
                 output.write(line.encode("utf8") + "\n")
             else:
                 print "\n ! Unknown line in main body: %s" % line
