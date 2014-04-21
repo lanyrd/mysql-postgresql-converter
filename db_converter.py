@@ -71,7 +71,7 @@ def parse(input_filename, output_filename):
         logging.flush()
         line = line.decode("utf8").strip().replace(r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
         # Ignore comment lines
-        if line.startswith("--") or line.startswith("/*") or line.startswith("LOCK TABLES") or line.startswith("DROP TABLE") or line.startswith("UNLOCK TABLES") or not line:
+        if line.startswith("--") or line.startswith("/*") or line.startswith("LOCK TABLES") or line.startswith("UNLOCK TABLES") or not line:
             continue
 
         # Outside of anything handling
