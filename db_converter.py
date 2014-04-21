@@ -48,7 +48,6 @@ def parse(input_filename, output_filename):
     else:
         input_fh = open(input_filename)
 
-
     output.write("-- Converted by db_converter\n")
     output.write("START TRANSACTION;\n")
     output.write("SET standard_conforming_strings=off;\n")
@@ -57,12 +56,12 @@ def parse(input_filename, output_filename):
 
     for i, line in enumerate(input_fh):
         time_taken = time.time() - started
-        percentage_done = (i+1) / float(num_lines)
+        percentage_done = (i + 1) / float(num_lines)
         secs_left = (time_taken / percentage_done) - time_taken
         logging.write("\rLine %i (of %s: %.2f%%) [%s tables] [%s inserts] [ETA: %i min %i sec]" % (
             i + 1,
             num_lines,
-            ((i+1)/float(num_lines))*100,
+            ((i + 1) / float(num_lines)) * 100,
             len(tables),
             num_inserts,
             secs_left // 60,
@@ -95,7 +94,7 @@ def parse(input_filename, output_filename):
         else:
             # Is it a column?
             if line.startswith('"'):
-                useless, name, definition = line.strip(",").split('"',2)
+                useless, name, definition = line.strip(",").split('"', 2)
                 try:
                     type, extra = definition.strip().split(" ", 1)
 
@@ -150,7 +149,7 @@ def parse(input_filename, output_filename):
                     enum_name = "{0}_{1}".format(current_table, name)
 
                     if enum_name not in enum_types:
-                        output.write("CREATE TYPE {0} AS ENUM ({1}); \n".format(enum_name, types_str));
+                        output.write("CREATE TYPE {0} AS ENUM ({1}); \n".format(enum_name, types_str))
                         enum_types.append(enum_name)
 
                     type = enum_name
@@ -176,7 +175,7 @@ def parse(input_filename, output_filename):
                 creation_lines.append("UNIQUE (%s)" % line.split("(")[1].split(")")[0])
             elif line.startswith("FULLTEXT KEY"):
 
-                fulltext_keys = " || ' ' || ".join( line.split('(')[-1].split(')')[0].replace('"', '').split(',') )
+                fulltext_keys = " || ' ' || ".join(line.split('(')[-1].split(')')[0].replace('"', '').split(','))
                 fulltext_key_lines.append("CREATE INDEX ON %s USING gin(to_tsvector('english', %s))" % (current_table, fulltext_keys))
 
             elif line.startswith("KEY"):
@@ -191,7 +190,6 @@ def parse(input_filename, output_filename):
             # ???
             else:
                 print "\n ! Unknown line inside table creation: %s" % line
-
 
     # Finish file
     output.write("\n-- Post-data save --\n")
