@@ -68,7 +68,7 @@ def parse(input_filename, output_filename):
             secs_left % 60,
         ))
         logging.flush()
-        line = line.decode("utf8").strip().replace(r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
+        line = line.decode("utf8", 'replace').strip().replace(r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
         # Ignore comment lines
         if line.startswith("--") or line.startswith("/*") or line.startswith("LOCK TABLES") or line.startswith("UNLOCK TABLES") or not line:
             continue
