@@ -16,15 +16,19 @@ First, dump your MySQL database in PostgreSQL-compatible format
     mysqldump --compatible=postgresql --default-character-set=utf8 \
     -r databasename.mysql -u root databasename
 
-Then, convert it using the dbconverter.py script
+Then, convert it using the db_converter.py script
 
-`python dbconverter.py databasename.mysql databasename.psql`
+`python db_converter.py databasename.mysql databasename.psql`
 
 It'll print progress to the terminal.
 
-Finally, load your new dump into a fresh PostgreSQL database using: 
+Create a new database on PostgreSQL
 
-`psql -f databasename.psql`
+`createdb databasename`
+
+Finally, load your new dump into the database using:
+
+`psql databasename -f databasename.psql`
 
 More information
 ----------------
