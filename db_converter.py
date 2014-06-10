@@ -182,7 +182,7 @@ def parse(input_filename, output_filename):
             elif line == ");":
                 output.write("CREATE TABLE \"%s\" (\n" % current_table)
                 for i, line in enumerate(creation_lines):
-                    output.write("    %s%s\n" % (line, "," if i != (len(creation_lines) - 1) else ""))
+                    output.write("    %s%s\n" % (line.encode("utf8"), "," if i != (len(creation_lines) - 1) else ""))
                 output.write(');\n\n')
                 current_table = None
             # ???
