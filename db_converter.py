@@ -180,9 +180,9 @@ def parse(input_filename, output_filename):
                 pass
             # Is it the end of the table?
             elif line == ");":
-                output.write("CREATE TABLE \"%s\" (\n" % current_table)
+                output.write("CREATE TABLE \"%s\" (\n" % current_table.encode('utf-8'))
                 for i, line in enumerate(creation_lines):
-                    output.write("    %s%s\n" % (line, "," if i != (len(creation_lines) - 1) else ""))
+                    output.write("    %s%s\n" % (line.encode('utf-8'), "," if i != (len(creation_lines) - 1) else ""))
                 output.write(');\n\n')
                 current_table = None
             # ???
@@ -198,22 +198,22 @@ def parse(input_filename, output_filename):
     # Write typecasts out
     output.write("\n-- Typecasts --\n")
     for line in cast_lines:
-        output.write("%s;\n" % line)
+        output.write("%s;\n" % line.encode('utf-8'))
 
     # Write FK constraints out
     output.write("\n-- Foreign keys --\n")
     for line in foreign_key_lines:
-        output.write("%s;\n" % line)
+        output.write("%s;\n" % line.encode('utf-8'))
 
     # Write sequences out
     output.write("\n-- Sequences --\n")
     for line in sequence_lines:
-        output.write("%s;\n" % line)
+        output.write("%s;\n" % line.encode('utf-8'))
 
     # Write full-text indexkeyses out
     output.write("\n-- Full Text keys --\n")
     for line in fulltext_key_lines:
-        output.write("%s;\n" % line)
+        output.write("%s;\n" % line.encode('utf-8'))
 
     # Finish file
     output.write("\n")
