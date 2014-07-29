@@ -134,6 +134,9 @@ def parse(input_filename, output_filename):
                     set_sequence = True
                 elif type == "datetime":
                     type = "timestamp with time zone"
+                elif type.startswith("double("):
+                    size = (type.split("(")[1].rstrip(")"))
+                    type = "numeric(%s)" % (size)    
                 elif type == "double":
                     type = "double precision"
                 elif type == "blob":
