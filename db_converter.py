@@ -120,6 +120,9 @@ def parse(input_filename, output_filename):
                 elif type.startswith("bigint("):
                     type = "bigint"
                     set_sequence = True
+                elif type.startswith("tinyint("):
+                    type = "smallint"
+                    set_sequence = True
                 elif type == "longtext":
                     type = "text"
                 elif type == "mediumtext":
