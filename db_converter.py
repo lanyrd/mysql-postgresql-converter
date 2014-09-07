@@ -110,11 +110,11 @@ def parse(input_filename, output_filename):
                 # See if it needs type conversion
                 final_type = None
                 set_sequence = None
-                if type == "tinyint(1)":
+                if type.startswith("tinyint"):
                     type = "int4"
                     set_sequence = True
                     final_type = "boolean"
-                elif type.startswith("int("):
+                elif type.startswith("int(") or type.startswith("mediumint"):
                     type = "integer"
                     set_sequence = True
                 elif type.startswith("bigint("):
