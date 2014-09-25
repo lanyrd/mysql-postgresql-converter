@@ -22,7 +22,7 @@ def parse(input_filename, output_filename):
     if input_filename == "-":
         num_lines = -1
     else:
-        num_lines = int(subprocess.check_output(["wc", "-l", input_filename]).strip().split()[0])
+        num_lines = sum(1 for line in open(input_filename, 'r'))
     tables = {}
     current_table = None
     creation_lines = []
