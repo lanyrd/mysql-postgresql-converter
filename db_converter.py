@@ -132,7 +132,7 @@ def parse(input_filename, output_filename):
                 elif type.startswith("smallint("):
                     type = "int2"
                     set_sequence = True
-                elif type == "datetime":
+                elif type.startswith("datetime"):
                     type = "timestamp with time zone"
                 elif type == "double":
                     type = "double precision"
