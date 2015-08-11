@@ -82,7 +82,7 @@ def parse(input_filename, output_filename):
                 creation_lines = []
             # Inserting data into a table?
             elif line.startswith("INSERT INTO"):
-                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
+                output.write(re.sub(r"'0000-00-00 00:00:00(\.[0]+)?'", "'1970-01-01 00:00:00'", line.encode("utf8")) + "\n")
                 num_inserts += 1
             # ???
             elif line.startswith("DROP TABLE"):
@@ -162,7 +162,7 @@ def parse(input_filename, output_filename):
                 if name == "id" and set_sequence is True:
                     sequence_lines.append("DROP SEQUENCE IF EXISTS %s_id_seq" % (current_table))
                     sequence_lines.append("CREATE SEQUENCE %s_id_seq" % (current_table))
-                    sequence_lines.append("SELECT setval('%s_id_seq', max(id)) FROM %s" % (current_table, current_table))
+                    sequence_lines.append("SELECT setval('%s_id_seq', max(id)) FROM \"%s\"" % (current_table, current_table))
                     sequence_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"id\" SET DEFAULT nextval('%s_id_seq')" % (current_table, current_table))
                 # Record it
                 creation_lines.append('"%s" %s %s' % (name, type, extra))
