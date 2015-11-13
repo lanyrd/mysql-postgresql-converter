@@ -92,7 +92,7 @@ def parse(input_filename, output_filename):
                 num_inserts += 1
             # ???
             else:
-                print "\n ! Unknown line in main body: %s" % line
+                print("\n ! Unknown line in main body: %s" % line)
 
         # Inside-create-statement handling
         else:
@@ -115,10 +115,12 @@ def parse(input_filename, output_filename):
                 # See if it needs type conversion
                 final_type = None
                 set_sequence = None
-                if db_type == "tinyint(1)":
-                    db_type = "int4"
+                if db_type.startswith("tinyint("):
+                    db_type = "int2"
                     set_sequence = True
-                    final_type = "boolean"
+                elif db_type.startswith("mediumint("):
+                    db_type = "integer"
+                    set_sequence = True
                 elif db_type.startswith("int("):
                     db_type = "integer"
                     set_sequence = True
@@ -197,12 +199,16 @@ def parse(input_filename, output_filename):
             elif line == ");":
                 output.write("CREATE TABLE \"%s\" (\n" % current_table)
                 for i, line in enumerate(creation_lines):
-                    output.write("    %s%s\n" % (line, "," if i != (len(creation_lines) - 1) else ""))
+                    line = "    %s%s\n" % (line, "," if i != (len(creation_lines) - 1) else "")
+                    line = line.replace("'0000-00-00'", "'1000-01-01'")
+                    line = line.replace("'0000-00-00 00:00:00'", "'1000-01-01 00:00:00'")
+                    line = re.sub(r"COMMENT\s+'(.*)'.*$", r", /* \1 */", line)
+                    output.write(line)
                 output.write(');\n\n')
                 current_table = None
             # ???
             else:
-                print "\n ! Unknown line inside table creation: %s" % line
+                print("\n ! Unknown line inside table creation: %s" % line)
 
     # Finish file
     output.write("\n-- Post-data save --\n")
@@ -232,7 +238,7 @@ def parse(input_filename, output_filename):
     # Finish file
     output.write("\n")
     output.write("COMMIT;\n")
-    print ""
+    print("")
 
 
 if __name__ == "__main__":
