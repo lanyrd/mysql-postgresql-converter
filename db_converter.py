@@ -38,15 +38,15 @@ def parse(input_filename, output_filename):
     # unless we're writing output to stdout, in which case NO PROGRESS FOR YOU.
     if output_filename == "-":
         output = sys.stdout
-        logging = open(os.devnull, "w")
+        logging = open(os.devnull, "w", encoding='utf-8')
     else:
-        output = open(output_filename, "w")
+        output = open(output_filename, "w", encoding='utf-8')
         logging = sys.stdout
 
     if input_filename == "-":
         input_fh = sys.stdin
     else:
-        input_fh = open(input_filename)
+        input_fh = open(input_filename, encoding='utf-8')
 
     output.write("-- Converted by db_converter\n")
     output.write("START TRANSACTION;\n")
@@ -68,8 +68,7 @@ def parse(input_filename, output_filename):
             secs_left % 60,
         ))
         logging.flush()
-        line = (line.decode("utf8")
-                    .strip()
+        line = (line.strip()
                     .replace(r"\\", "WUBWUBREALSLASHWUB")
                     .replace(r"\'", "''")
                     .replace("WUBWUBREALSLASHWUB", r"\\"))
@@ -88,7 +87,9 @@ def parse(input_filename, output_filename):
                 creation_lines = []
             # Inserting data into a table?
             elif line.startswith("INSERT INTO"):
-                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
+                line = line.replace("'0000-00-00'", "NULL")
+                line = line.replace("'0000-00-00 00:00:00'", "NULL")
+                output.write(line + "\n")
                 num_inserts += 1
             # ???
             else:
