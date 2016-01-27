@@ -85,6 +85,14 @@ def parse(input_filename, output_filename):
             elif line.startswith("INSERT INTO"):
                 output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
                 num_inserts += 1
+            elif line.startswith("CREATE DATABASE"):
+                db_name = line.split('"')[1]
+                output.write("COMMIT;\n")
+                output.write(u"CREATE DATABASE \"%s\";\n" % db_name)
+            elif line.startswith("USE "):
+                db_name = line.split('"')[1]
+                output.write(u"\connect \"%s\"\n" % db_name)
+                output.write("START TRANSACTION;\n")
             # ???
             else:
                 print "\n ! Unknown line in main body: %s" % line
