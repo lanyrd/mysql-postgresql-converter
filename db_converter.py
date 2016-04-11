@@ -94,6 +94,7 @@ def parse(input_filename, output_filename):
             # Is it a column?
             if line.startswith('"'):
                 useless, name, definition = line.strip(",").split('"',2)
+                name = name.lower() # postgres converts to lowercase anyway
                 try:
                     type, extra = definition.strip().split(" ", 1)
 
