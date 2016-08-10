@@ -12,17 +12,11 @@ import re
 import sys
 import os
 import time
-import subprocess
 
 
 def parse(input_filename, output_filename):
     "Feed it a file, and it'll output a fixed one"
 
-    # State storage
-    if input_filename == "-":
-        num_lines = -1
-    else:
-        num_lines = int(subprocess.check_output(["wc", "-l", input_filename]).strip().split()[0])
     tables = {}
     current_table = None
     creation_lines = []
@@ -43,10 +37,14 @@ def parse(input_filename, output_filename):
         output = open(output_filename, "w")
         logging = sys.stdout
 
+    # Open the input file and state storage
     if input_filename == "-":
         input_fh = sys.stdin
+        num_lines = -1
     else:
         input_fh = open(input_filename)
+        num_lines = sum(1 for l in input_fh)
+        input_fh.seek(0)
 
 
     output.write("-- Converted by db_converter\n")
