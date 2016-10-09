@@ -106,6 +106,7 @@ def parse(input_filename, output_filename):
                     extra = ""
                 extra = re.sub("CHARACTER SET [\w\d]+\s*", "", extra.replace("unsigned", ""))
                 extra = re.sub("COLLATE [\w\d]+\s*", "", extra.replace("unsigned", ""))
+                extra = re.sub("COMMENT ('|\").*('|\")", "", extra.replace("", ""))
 
                 # See if it needs type conversion
                 final_type = None
