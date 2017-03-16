@@ -20,7 +20,10 @@ Then, convert it using the dbconverter.py script
 
 `python db_converter.py databasename.mysql databasename.psql`
 
-It'll print progress to the terminal.
+It'll print progress to the terminal. Optional you can use the arguments:
+ 
+* `--remove-defaults` to ignore default values for columns 
+* `--remove-comments` to ignore comments for columns 
 
 Finally, load your new dump into a fresh PostgreSQL database using: 
 
