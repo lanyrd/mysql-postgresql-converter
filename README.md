@@ -8,6 +8,13 @@ notably, it doubles the lengths of VARCHARs due to a unicode size problem we
 had, places indexes on all foreign keys, and presumes you're using Django
 for column typing purposes.
 
+For a more general approach have a look at pgloader <https://github.com/dimitri/pgloader>, 
+which connects to a running MySQL instance and discovers the schema from the catalogs to
+then reproduce it in PostgreSQL with a default set of casting rules (that you can edit).
+[pgloader](https://github.com/dimitri/pgloader) supports migrating the schema and the data,
+converting data on the fly, and reproducing Not Null constraints, default values, primary
+and secondary indexes, foreign keys and comments.
+
 How to use
 ----------
 
