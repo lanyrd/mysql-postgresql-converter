@@ -10,6 +10,8 @@ mysqldump --compatible=postgresql --default-character-set=utf8 -r databasename.m
 
 import re
 import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 import os
 import time
 import subprocess
