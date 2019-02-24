@@ -33,6 +33,7 @@ def parse(input_filename, output_filename):
     cast_lines = []
     num_inserts = 0
     started = time.time()
+    commentRE = re.compile("COMMENT  *'(.*)'$")
 
     # Open output file and write header. Logging file handle will be stdout
     # unless we're writing output to stdout, in which case NO PROGRESS FOR YOU.
@@ -81,6 +82,7 @@ def parse(input_filename, output_filename):
                 current_table = line.split('"')[1]
                 tables[current_table] = {"columns": []}
                 creation_lines = []
+                comment_lines = []
             # Inserting data into a table?
             elif line.startswith("INSERT INTO"):
                 output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
@@ -104,6 +106,10 @@ def parse(input_filename, output_filename):
                 except ValueError:
                     type = definition.strip()
                     extra = ""
+                commentMatch = commentRE.search(extra)
+                if (commentMatch):
+                    comment_lines.append((name, commentMatch.group(1)))
+                extra = re.sub("COMMENT '(.*)',?$", "", extra.replace("unsigned", ""))
                 extra = re.sub("CHARACTER SET [\w\d]+\s*", "", extra.replace("unsigned", ""))
                 extra = re.sub("COLLATE [\w\d]+\s*", "", extra.replace("unsigned", ""))
 
@@ -148,6 +154,7 @@ def parse(input_filename, output_filename):
                     enum_name = "{0}_{1}".format(current_table, name)
 
                     if enum_name not in enum_types:
+                        output.write("DROP TYPE IF EXISTS {0}; \n".format(enum_name));
                         output.write("CREATE TYPE {0} AS ENUM ({1}); \n".format(enum_name, types_str));
                         enum_types.append(enum_name)
 
@@ -184,6 +191,11 @@ def parse(input_filename, output_filename):
                 for i, line in enumerate(creation_lines):
                     output.write("    %s%s\n" % (line, "," if i != (len(creation_lines) - 1) else ""))
                 output.write(');\n\n')
+                # Write sequences out
+                output.write("\n-- Comments --\n")
+                for line in comment_lines:
+                    field, comment = line
+                    output.write("COMMENT ON COLUMN \"%s\".\"%s\" IS '%s';\n" % (current_table, field, comment))
                 current_table = None
             # ???
             else:
