@@ -87,7 +87,7 @@ def parse(input_filename, output_filename):
                 num_inserts += 1
             # ???
             else:
-                print "\n ! Unknown line in main body: %s" % line
+                print("\n ! Unknown line in main body: %s" % line)
 
         # Inside-create-statement handling
         else:
@@ -187,7 +187,7 @@ def parse(input_filename, output_filename):
                 current_table = None
             # ???
             else:
-                print "\n ! Unknown line inside table creation: %s" % line
+                print("\n ! Unknown line inside table creation: %s" % line)
 
 
     # Finish file
@@ -218,7 +218,7 @@ def parse(input_filename, output_filename):
     # Finish file
     output.write("\n")
     output.write("COMMIT;\n")
-    print ""
+    print("")
 
 
 if __name__ == "__main__":
