@@ -106,6 +106,7 @@ def parse(input_filename, output_filename):
                     extra = ""
                 extra = re.sub("CHARACTER SET [\w\d]+\s*", "", extra.replace("unsigned", ""))
                 extra = re.sub("COLLATE [\w\d]+\s*", "", extra.replace("unsigned", ""))
+                extra = re.sub("COMMENT ('|\").*('|\")", "", extra.replace("", ""))
 
                 # See if it needs type conversion
                 final_type = None
@@ -132,9 +133,12 @@ def parse(input_filename, output_filename):
                 elif type.startswith("smallint("):
                     type = "int2"
                     set_sequence = True
+                elif type.startswith("year("):
+                    type = "int2"
+                    set_sequence = True
                 elif type == "datetime":
                     type = "timestamp with time zone"
-                elif type == "double":
+                elif type.startswith("double("):
                     type = "double precision"
                 elif type.endswith("blob"):
                     type = "bytea"
