@@ -69,7 +69,7 @@ def parse(input_filename, output_filename):
             secs_left % 60,
         ))
         logging.flush()
-        line = line.decode("utf8").strip().replace(r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
+        line = line.encode('utf-8').decode('utf8').strip().replace(r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
         # Ignore comment lines
         if line.startswith("--") or line.startswith("/*") or line.startswith("LOCK TABLES") or line.startswith("DROP TABLE") or line.startswith("UNLOCK TABLES") or not line:
             continue
@@ -83,11 +83,11 @@ def parse(input_filename, output_filename):
                 creation_lines = []
             # Inserting data into a table?
             elif line.startswith("INSERT INTO"):
-                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
+                output.write(line.encode("utf8").decode('utf8').replace("'0000-00-00 00:00:00'", "NULL") + "\n")
                 num_inserts += 1
             # ???
             else:
-                print "\n ! Unknown line in main body: %s" % line
+                print("\n ! Unknown line in main body: %s" % line)
 
         # Inside-create-statement handling
         else:
@@ -187,7 +187,7 @@ def parse(input_filename, output_filename):
                 current_table = None
             # ???
             else:
-                print "\n ! Unknown line inside table creation: %s" % line
+                print("\n ! Unknown line inside table creation: %s" % line)
 
 
     # Finish file
@@ -218,7 +218,7 @@ def parse(input_filename, output_filename):
     # Finish file
     output.write("\n")
     output.write("COMMIT;\n")
-    print ""
+    print("")
 
 
 if __name__ == "__main__":
