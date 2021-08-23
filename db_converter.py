@@ -14,6 +14,12 @@ import os
 import time
 import subprocess
 
+# Set this to the default value which should be assigned to MySQL's 0000-00-00 values
+# (which are not supported by Postgres)
+# For example:
+#   * NULL
+#   * 1990-01-01
+DATE_DEFAULT = "1900-01-01"
 
 def parse(input_filename, output_filename):
     "Feed it a file, and it'll output a fixed one"
@@ -33,6 +39,7 @@ def parse(input_filename, output_filename):
     cast_lines = []
     num_inserts = 0
     started = time.time()
+    commentRE = re.compile("COMMENT *'(.*)'$")
 
     # Open output file and write header. Logging file handle will be stdout
     # unless we're writing output to stdout, in which case NO PROGRESS FOR YOU.
@@ -81,13 +88,14 @@ def parse(input_filename, output_filename):
                 current_table = line.split('"')[1]
                 tables[current_table] = {"columns": []}
                 creation_lines = []
+                comment_lines = []
             # Inserting data into a table?
             elif line.startswith("INSERT INTO"):
-                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
+                output.write(re.sub(r"([\(,])'0000-00-00'", r"\1'"+DATE_DEFAULT+"'", re.sub(r"([\(,])'0000-00-00 00:00:00'", r"\1'"+DATE_DEFAULT+"'", line.encode("utf8"))) + "\n")
                 num_inserts += 1
             # ???
             else:
-                print "\n ! Unknown line in main body: %s" % line
+                print("\n ! Unknown line in main body: %s" % line)
 
         # Inside-create-statement handling
         else:
@@ -104,6 +112,10 @@ def parse(input_filename, output_filename):
                 except ValueError:
                     type = definition.strip()
                     extra = ""
+                commentMatch = commentRE.search(extra)
+                if (commentMatch):
+                    comment_lines.append((name, commentMatch.group(1)))
+                extra = re.sub("COMMENT '(.*)',?$", "", extra.replace("unsigned", ""))
                 extra = re.sub("CHARACTER SET [\w\d]+\s*", "", extra.replace("unsigned", ""))
                 extra = re.sub("COLLATE [\w\d]+\s*", "", extra.replace("unsigned", ""))
 
@@ -127,7 +139,7 @@ def parse(input_filename, output_filename):
                 elif type == "tinytext":
                     type = "text"
                 elif type.startswith("varchar("):
-                    size = int(type.split("(")[1].rstrip(")"))
+                    size = int(type.split("(")[1].split(")")[0])
                     type = "varchar(%s)" % (size * 2)
                 elif type.startswith("smallint("):
                     type = "int2"
@@ -138,6 +150,10 @@ def parse(input_filename, output_filename):
                     type = "double precision"
                 elif type.endswith("blob"):
                     type = "bytea"
+                elif type == "date":
+                    type, extra = convert_date(type, extra)
+                elif type == "timestamp":
+                    type, extra = convert_date(type, extra)
                 elif type.startswith("enum(") or type.startswith("set("):
 
                     types_str = type.split("(")[1].rstrip(")").rstrip('"')
@@ -148,6 +164,7 @@ def parse(input_filename, output_filename):
                     enum_name = "{0}_{1}".format(current_table, name)
 
                     if enum_name not in enum_types:
+                        output.write("DROP TYPE IF EXISTS {0}; \n".format(enum_name));
                         output.write("CREATE TYPE {0} AS ENUM ({1}); \n".format(enum_name, types_str));
                         enum_types.append(enum_name)
 
@@ -182,12 +199,17 @@ def parse(input_filename, output_filename):
             elif line == ");":
                 output.write("CREATE TABLE \"%s\" (\n" % current_table)
                 for i, line in enumerate(creation_lines):
-                    output.write("    %s%s\n" % (line, "," if i != (len(creation_lines) - 1) else ""))
+                    output.write("    %s%s\n" % (line.encode("utf8"), "," if i != (len(creation_lines) - 1) else ""))
                 output.write(');\n\n')
+                # Write sequences out
+                output.write("\n-- Comments --\n")
+                for line in comment_lines:
+                    field, comment = line
+                    output.write("COMMENT ON COLUMN \"%s\".\"%s\" IS '%s';\n" % (current_table, field, comment))
                 current_table = None
             # ???
             else:
-                print "\n ! Unknown line inside table creation: %s" % line
+                print("\n ! Unknown line inside table creation: %s" % line)
 
 
     # Finish file
@@ -218,8 +240,29 @@ def parse(input_filename, output_filename):
     # Finish file
     output.write("\n")
     output.write("COMMIT;\n")
-    print ""
+    print("")
 
+def convert_date(type, extra):
+    not_null = 'NOT NULL' in extra
+
+    # A default date is given and the schema says, column should be not null,
+    # so we replace out-of-range values with default value or 01-01
+    if DATE_DEFAULT != 'NULL' and not_null:
+        # replace 0000-00-00 by DATE_DEFAULT
+        extra = re.sub('DEFAULT \'0000-00-00\'', 'DEFAULT \'%s\'' % DATE_DEFAULT, extra)
+        # replace 0000-00-00 by DATE_DEFAULT
+        extra = re.sub('DEFAULT \'0000-00-00 00:00:00\'', 'DEFAULT \'%s\'' % DATE_DEFAULT, extra)
+        # replace YYYY-00-00 by YYYY-01-01
+        extra = re.sub(r"(DEFAULT '\d\d\d\d)-00-00'", r"\1-01-01'", extra)
+
+    # The default date that is given is NULL, the schema says NOT NULL
+    # and the default value of the schema is invalid. So we resolve this
+    # conflict by making the column nullable
+    if DATE_DEFAULT == 'NULL' and not_null and "DEFAULT '0000-00-00'" in extra:
+        extra = re.sub('NOT NULL', '', extra)
+        extra = re.sub('DEFAULT \'0000-00-00\'', '', extra)
+
+    return type, extra
 
 if __name__ == "__main__":
     parse(sys.argv[1], sys.argv[2])

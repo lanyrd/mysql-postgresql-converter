@@ -26,6 +26,14 @@ Finally, load your new dump into a fresh PostgreSQL database using:
 
 `psql -f databasename.psql`
 
+How to adjust
+-------------
+There are some constants in the script which try to assist you on incompatibilities:
+
+    DATE_DEFAULT = "1900-01-01"
+
+Default date that is used to replace MySQL's "0000-00-00" date, which is not allowed in Postgres.
+
 More information
 ----------------
 
