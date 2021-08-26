@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Fixes a MySQL dump made with the right format so it can be directly
@@ -8,12 +9,15 @@ Dump using:
 mysqldump --compatible=postgresql --default-character-set=utf8 -r databasename.mysql -u root databasename
 """
 
+from __future__ import unicode_literals
 import re
 import sys
 import os
 import time
 import subprocess
 
+reload(sys)
+sys.setdefaultencoding('UTF8')
 
 def parse(input_filename, output_filename):
     "Feed it a file, and it'll output a fixed one"
@@ -69,7 +73,7 @@ def parse(input_filename, output_filename):
             secs_left % 60,
         ))
         logging.flush()
-        line = line.decode("utf8").strip().replace(r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
+        line = line.decode("UTF-8").strip().replace(r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
         # Ignore comment lines
         if line.startswith("--") or line.startswith("/*") or line.startswith("LOCK TABLES") or line.startswith("DROP TABLE") or line.startswith("UNLOCK TABLES") or not line:
             continue
@@ -83,7 +87,7 @@ def parse(input_filename, output_filename):
                 creation_lines = []
             # Inserting data into a table?
             elif line.startswith("INSERT INTO"):
-                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
+                output.write(line.encode("UTF-8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
                 num_inserts += 1
             # ???
             else:
