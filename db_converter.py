@@ -12,7 +12,6 @@ import re
 import sys
 import os
 import time
-import subprocess
 
 
 def parse(input_filename, output_filename):
@@ -22,7 +21,9 @@ def parse(input_filename, output_filename):
     if input_filename == "-":
         num_lines = -1
     else:
-        num_lines = int(subprocess.check_output(["wc", "-l", input_filename]).strip().split()[0])
+        # faster num of lines calculation
+        # encoding must be setted, otherwise windows python not working as expected
+        num_lines = sum(1 for line in open(input_filename, encoding="utf8"))
     tables = {}
     current_table = None
     creation_lines = []
@@ -38,16 +39,15 @@ def parse(input_filename, output_filename):
     # unless we're writing output to stdout, in which case NO PROGRESS FOR YOU.
     if output_filename == "-":
         output = sys.stdout
-        logging = open(os.devnull, "w")
+        logging = open(os.devnull, "w", encoding="utf8")
     else:
-        output = open(output_filename, "w")
+        output = open(output_filename, "w", encoding="utf8")
         logging = sys.stdout
 
     if input_filename == "-":
         input_fh = sys.stdin
     else:
-        input_fh = open(input_filename)
-
+        input_fh = open(input_filename, encoding="utf8")
 
     output.write("-- Converted by db_converter\n")
     output.write("START TRANSACTION;\n")
@@ -69,9 +69,10 @@ def parse(input_filename, output_filename):
             secs_left % 60,
         ))
         logging.flush()
-        line = line.decode("utf8").strip().replace(r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
+        line = line.encode('utf8').decode('utf8').strip().replace(
+            r"\\", "WUBWUBREALSLASHWUB").replace(r"\'", "''").replace("WUBWUBREALSLASHWUB", r"\\")
         # Ignore comment lines
-        if line.startswith("--") or line.startswith("/*") or line.startswith("LOCK TABLES") or line.startswith("DROP TABLE") or line.startswith("UNLOCK TABLES") or not line:
+        if line.startswith("--") or line.startswith("/*") or line.startswith("LOCK TABLES") or line.startswith("UNLOCK TABLES") or not line:
             continue
 
         # Outside of anything handling
@@ -83,17 +84,22 @@ def parse(input_filename, output_filename):
                 creation_lines = []
             # Inserting data into a table?
             elif line.startswith("INSERT INTO"):
-                output.write(line.encode("utf8").replace("'0000-00-00 00:00:00'", "NULL") + "\n")
+                # PostgreSQL doesn't support 0000-00-00 00:00:00 timestamp and convertion to null is not an option.
+                # Best available migration is `TO_TIMESTAMP(0)`
+                output.write(line.encode("utf8").decode('utf8').replace(
+                    "'0000-00-00 00:00:00'", "TO_TIMESTAMP(0)").replace(r"\0", "") + "\n")
                 num_inserts += 1
             # ???
+            elif line.startswith("DROP TABLE"):
+                output.write(line.encode("utf8").decode('utf8') + "\n")
             else:
-                print "\n ! Unknown line in main body: %s" % line
+                print("\n ! Unknown line in main body: %s" % line)
 
         # Inside-create-statement handling
         else:
             # Is it a column?
             if line.startswith('"'):
-                useless, name, definition = line.strip(",").split('"',2)
+                useless, name, definition = line.strip(",").split('"', 2)
                 try:
                     type, extra = definition.strip().split(" ", 1)
 
@@ -104,62 +110,77 @@ def parse(input_filename, output_filename):
                 except ValueError:
                     type = definition.strip()
                     extra = ""
-                extra = re.sub("CHARACTER SET [\w\d]+\s*", "", extra.replace("unsigned", ""))
-                extra = re.sub("COLLATE [\w\d]+\s*", "", extra.replace("unsigned", ""))
+                extra = re.sub(
+                    "CHARACTER SET [\w\d]+\s*", "", extra.replace("unsigned", ""))
+                extra = re.sub("COLLATE [\w\d]+\s*",
+                               "", extra.replace("unsigned", ""))
 
                 # See if it needs type conversion
                 final_type = None
                 set_sequence = None
                 if type.startswith("tinyint("):
-                    type = "int4"
+                    type = "INT4"
                     set_sequence = True
-                    final_type = "boolean"
+                    final_type = "BOOLEAN"
                 elif type.startswith("int("):
-                    type = "integer"
+                    type = "INTEGER"
                     set_sequence = True
                 elif type.startswith("bigint("):
-                    type = "bigint"
+                    type = "BIGINT"
                     set_sequence = True
                 elif type == "longtext":
-                    type = "text"
+                    type = "TEXT"
                 elif type == "mediumtext":
-                    type = "text"
+                    type = "TEXT"
                 elif type == "tinytext":
-                    type = "text"
+                    type = "TEXT"
                 elif type.startswith("varchar("):
                     size = int(type.split("(")[1].rstrip(")"))
-                    type = "varchar(%s)" % (size * 2)
+                    type = "VARCHAR(%s)" % (size * 2)
                 elif type.startswith("smallint("):
-                    type = "int2"
+                    type = "INT2"
                     set_sequence = True
-                elif type == "datetime":
-                    type = "timestamp with time zone"
+                elif type == "datetime" or type == "timestamp":
+                    type = "TIMESTAMP WITH TIME ZONE"
+                    extra = extra.replace(
+                        "DEFAULT '0000-00-00 00:00:00'", "DEFAULT TO_TIMESTAMP(0)")
                 elif type == "double":
-                    type = "double precision"
+                    type = "DOUBLE PRECISION"
                 elif type.endswith("blob"):
-                    type = "bytea"
+                    type = "BYTEA"
+                elif type.endswith("current_timestamp("):
+                    type = type.replace(
+                        "current_timestamp(", "CURRENT_TIMESTAMP")
                 elif type.startswith("enum(") or type.startswith("set("):
 
                     types_str = type.split("(")[1].rstrip(")").rstrip('"')
-                    types_arr = [type_str.strip('\'') for type_str in types_str.split(",")]
+                    types_arr = [type_str.strip('\'')
+                                 for type_str in types_str.split(",")]
 
                     # Considered using values to make a name, but its dodgy
                     # enum_name = '_'.join(types_arr)
                     enum_name = "{0}_{1}".format(current_table, name)
 
                     if enum_name not in enum_types:
-                        output.write("CREATE TYPE {0} AS ENUM ({1}); \n".format(enum_name, types_str));
+                        output.write("CREATE TYPE {0} AS ENUM ({1}); \n".format(
+                            enum_name, types_str))
                         enum_types.append(enum_name)
 
                     type = enum_name
 
                 if final_type:
-                    cast_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"%s\" DROP DEFAULT, ALTER COLUMN \"%s\" TYPE %s USING CAST(\"%s\" as %s)" % (current_table, name, name, final_type, name, final_type))
+                    cast_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"%s\" DROP DEFAULT, ALTER COLUMN \"%s\" TYPE %s USING CAST(\"%s\" as %s)" % (
+                        current_table, name, name, final_type, name, final_type))
                 # ID fields need sequences [if they are integers?]
                 if name == "id" and set_sequence is True:
-                    sequence_lines.append("CREATE SEQUENCE %s_id_seq" % (current_table))
-                    sequence_lines.append("SELECT setval('%s_id_seq', max(id)) FROM %s" % (current_table, current_table))
-                    sequence_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"id\" SET DEFAULT nextval('%s_id_seq')" % (current_table, current_table))
+                    sequence_lines.append(
+                        "DROP SEQUENCE IF EXISTS %s_id_seq" % (current_table))
+                    sequence_lines.append(
+                        "CREATE SEQUENCE %s_id_seq" % (current_table))
+                    sequence_lines.append("SELECT setval('%s_id_seq', max(id)) FROM %s" % (
+                        current_table, current_table))
+                    sequence_lines.append("ALTER TABLE \"%s\" ALTER COLUMN \"id\" SET DEFAULT nextval('%s_id_seq')" % (
+                        current_table, current_table))
                 # Record it
                 creation_lines.append('"%s" %s %s' % (name, type, extra))
                 tables[current_table]['columns'].append((name, type, extra))
@@ -167,14 +188,19 @@ def parse(input_filename, output_filename):
             elif line.startswith("PRIMARY KEY"):
                 creation_lines.append(line.rstrip(","))
             elif line.startswith("CONSTRAINT"):
-                foreign_key_lines.append("ALTER TABLE \"%s\" ADD CONSTRAINT %s DEFERRABLE INITIALLY DEFERRED" % (current_table, line.split("CONSTRAINT")[1].strip().rstrip(",")))
-                foreign_key_lines.append("CREATE INDEX ON \"%s\" %s" % (current_table, line.split("FOREIGN KEY")[1].split("REFERENCES")[0].strip().rstrip(",")))
+                foreign_key_lines.append("ALTER TABLE \"%s\" ADD CONSTRAINT %s DEFERRABLE INITIALLY DEFERRED" % (
+                    current_table, line.split("CONSTRAINT")[1].strip().rstrip(",")))
+                foreign_key_lines.append("CREATE INDEX ON \"%s\" %s" % (current_table, line.split(
+                    "FOREIGN KEY")[1].split("REFERENCES")[0].strip().rstrip(",")))
             elif line.startswith("UNIQUE KEY"):
-                creation_lines.append("UNIQUE (%s)" % line.split("(")[1].split(")")[0])
+                creation_lines.append("UNIQUE (%s)" %
+                                      line.split("(")[1].split(")")[0])
             elif line.startswith("FULLTEXT KEY"):
 
-                fulltext_keys = " || ' ' || ".join( line.split('(')[-1].split(')')[0].replace('"', '').split(',') )
-                fulltext_key_lines.append("CREATE INDEX ON %s USING gin(to_tsvector('english', %s))" % (current_table, fulltext_keys))
+                fulltext_keys = " || ' ' || ".join(line.split(
+                    '(')[-1].split(')')[0].replace('"', '').split(','))
+                fulltext_key_lines.append("CREATE INDEX ON %s USING gin(to_tsvector('english', %s))" % (
+                    current_table, fulltext_keys))
 
             elif line.startswith("KEY"):
                 pass
@@ -182,13 +208,13 @@ def parse(input_filename, output_filename):
             elif line == ");":
                 output.write("CREATE TABLE \"%s\" (\n" % current_table)
                 for i, line in enumerate(creation_lines):
-                    output.write("    %s%s\n" % (line, "," if i != (len(creation_lines) - 1) else ""))
+                    output.write("    %s%s\n" % (line, "," if i !=
+                                 (len(creation_lines) - 1) else ""))
                 output.write(');\n\n')
                 current_table = None
             # ???
             else:
-                print "\n ! Unknown line inside table creation: %s" % line
-
+                print("\n ! Unknown line inside table creation: %s" % line)
 
     # Finish file
     output.write("\n-- Post-data save --\n")
@@ -218,7 +244,7 @@ def parse(input_filename, output_filename):
     # Finish file
     output.write("\n")
     output.write("COMMIT;\n")
-    print ""
+    print("")
 
 
 if __name__ == "__main__":
