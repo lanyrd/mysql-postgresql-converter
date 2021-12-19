@@ -12,7 +12,9 @@ How to use
 
 First, dump your MySQL database in PostgreSQL-compatible format
 
-`mysqldump --compatible=postgresql --default-character-set=utf8 -r databasename.mysql -u root databasename`
+```
+mysqldump --compatible=postgresql --default-character-set=utf8 -r databasename.mysql -u root databasename
+```
 
 Then, convert it using the dbconverter.py script
 
