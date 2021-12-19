@@ -122,7 +122,7 @@ def parse(input_filename, output_filename):
                     type = "INT4"
                     set_sequence = True
                     final_type = "BOOLEAN"
-                elif type.startswith("int("):
+                elif type.startswith("int(") or type.startswith("mediumint("):
                     type = "INTEGER"
                     set_sequence = True
                 elif type.startswith("bigint("):
