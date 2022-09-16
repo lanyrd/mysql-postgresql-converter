@@ -6,6 +6,11 @@ imported to a new PostgreSQL database.
 
 Dump using:
 mysqldump --compatible=postgresql --default-character-set=utf8 -r databasename.mysql -u root databasename
+
+TODO - madsantana
+Add fix to run on python3
+
+This script runs ok on python2
 """
 
 import re
@@ -13,6 +18,9 @@ import sys
 import os
 import time
 import subprocess
+
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 
 def parse(input_filename, output_filename):
